@@ -5,6 +5,9 @@
 
 class BNO055: public IMU {
 private:
+Adafruit_BNO055 this_sensor;
+imu::Vector<3> acceleration_vec;
+imu::Vector<3> euler_vec;
 
 
 public:
