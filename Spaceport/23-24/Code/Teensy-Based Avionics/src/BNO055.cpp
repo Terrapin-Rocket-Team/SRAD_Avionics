@@ -1,7 +1,7 @@
 include "BNO055.h"
 
 
-void setupbno()
+void setupBno()
 {
   if (!bno.begin())
   {
@@ -10,7 +10,7 @@ void setupbno()
   bno.setExtCrystalUse(true);
 }
 
-void calibrate_bno()
+void calibrate()
 {
   uint8_t system, gyro, accel, mag, i = 0;
   while ((system != 3) || (gyro != 3) || (accel != 3) || (mag != 3))
