@@ -16,7 +16,7 @@ RFM69HCW *curSystem = &radio1;
 
 void setup() {
 
-    Serial.begin(6000000);      // 6Mbps baud rate
+    Serial.begin(921600);      // 921600 baud rate (https://lucidar.me/en/serialib/most-used-baud-rates-table/)
 
     radio1.begin();
     radio2.begin();
