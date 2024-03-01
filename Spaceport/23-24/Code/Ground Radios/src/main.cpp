@@ -4,12 +4,12 @@
 #include "Radio.h"
 
 APRSConfig config = {"KC3UTM", "APRS", "WIDE1-1", '[', '/'};
-RadioSettings settings = {433.775, false, false, &hardware_spi, 10, 31, 32};
-RadioSettings settings2 = {915.775, false, false, &hardware_spi, 10, 31, 32};
-RadioSettings settings3 = {915.555, false, false, &hardware_spi, 10, 31, 32};
-RFM69HCW radio1 = {settings, config};
+RadioSettings settings1 = {433.775, false, false, &hardware_spi, 10, 31, 32};
+RadioSettings settings2 = {915.775, false, false, &hardware_spi, 10, 31, 32};       //change pins
+RadioSettings settings3 = {915.555, false, false, &hardware_spi, 10, 31, 32};       //change pins 
+RFM69HCW radio1 = {settings1, config};
 RFM69HCW radio2 = {settings2, config};
-RFM69HCW radio3 = {settings2, config};
+RFM69HCW radio3 = {settings3, config};
 
 int lastCycle = 1;
 RFM69HCW *curSystem = &radio1;
@@ -42,13 +42,25 @@ void loop() {
         }
     }
 
-    const char *msg = curSystem->rx();
-
-    if (strlen(msg) > 0) {
-
-        // call .decode() if needed
-        Serial.print(msg);
+    if (curSystem->available()) {
+        if (phase == 1) {
+            Serial.print(curSystem->receive(ENCT_GROUNDSTATION));
+        } else {
+            Serial.print(curSystem->rx());
+        }
     }
+
+    // const char *msg = curSystem->rx();
+
+    // if (strcmp(msg, "Failed to receive message") != 0 && strcmp(msg, "No message available") != 0) {
+
+    //     if (phase == 1) {
+    //         Serial.print("1: ");
+    //     } 
+    //     else {
+    //         Serial.print(msg);
+    //     }
+    // }
 
 
 

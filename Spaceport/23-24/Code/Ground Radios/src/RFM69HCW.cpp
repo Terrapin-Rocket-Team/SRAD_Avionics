@@ -161,9 +161,9 @@ const char *RFM69HCW::rx()
 
             return this->msg;
         }
-        return "";
+        return "Failed to receive message";
     }
-    return "";
+    return "No message available";
 }
 
 /*
