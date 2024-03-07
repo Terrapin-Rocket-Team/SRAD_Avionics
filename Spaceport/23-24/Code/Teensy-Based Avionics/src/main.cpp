@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include "State.h"
-#include "BMP390.h"
-#include "BNO055.h"
-#include "MAX_M10S.h"
-#include "DS3231.h"
-#include "RFM69HCW.h"
+#include "Sensors/BMP390.h"
+#include "Sensors/BNO055.h"
+#include "Sensors/MAX_M10S.h"
+#include "Sensors/DS3231.h"
+#include "Telemetry/RFM69HCW.h"
 #include "RecordData.h"
 
 BNO055 bno(13, 12);         // I2C Address 0x29
@@ -17,6 +17,12 @@ RFM69HCW radio = {settings, config};
 State computer;// = useKalmanFilter = true, stateRecordsOwnData = true
 uint32_t radioTimer = millis();
 
+#ifdef TEENSYDUINO                      // Check if compiling for Teensy
+extern "C" uint8_t external_psram_size; // Only declare for Teensy
+#else
+uint8_t external_psram_size = 0; // Set a default value for other platforms
+#endif
+
 PSRAM *ram;
 
 #define BUZZER 33
@@ -26,7 +32,7 @@ static double last = 0; // for better timing than "delay(100)"
 
 void setup()
 {
-    recordLogData(INFO, "Initializing Avionics System. 10 second delay to prevent unnecessary file generation.", TO_USB);
+    recordLogData(INFO_, "Initializing Avionics System. 10 second delay to prevent unnecessary file generation.", TO_USB);
     delay(5000);
 
     pinMode(BMP_ADDR_PIN, OUTPUT);
@@ -48,14 +54,14 @@ void setup()
     if (setupSDCard())
     {
 
-        recordLogData(INFO, "SD Card Initialized");
+        recordLogData(INFO_, "SD Card Initialized");
         digitalWrite(BUZZER, HIGH);
         delay(1000);
         digitalWrite(BUZZER, LOW);
     }
     else
     {
-        recordLogData(ERROR, "SD Card Failed to Initialize");
+        recordLogData(ERROR_, "SD Card Failed to Initialize");
 
         digitalWrite(BUZZER, HIGH);
         delay(200);
@@ -69,25 +75,25 @@ void setup()
     // The PSRAM must be initialized before the sensors to allow for proper data logging.
 
     if (ram->init())
-        recordLogData(INFO, "PSRAM Initialized");
+        recordLogData(INFO_, "PSRAM Initialized");
     else
-        recordLogData(ERROR, "PSRAM Failed to Initialize");
+        recordLogData(ERROR_, "PSRAM Failed to Initialize");
 
     if (!computer.addSensor(&bmp))
-        recordLogData(INFO, "Failed to add BMP390 Sensor");
+        recordLogData(INFO_, "Failed to add BMP390 Sensor");
     if (!computer.addSensor(&gps))
-        recordLogData(INFO, "Failed to add MAX_M10S Sensor");
+        recordLogData(INFO_, "Failed to add MAX_M10S Sensor");
     if (!computer.addSensor(&bno))
-        recordLogData(INFO, "Failed to add BNO055 Sensor");
+        recordLogData(INFO_, "Failed to add BNO055 Sensor");
     computer.setRadio(&radio);
     if (computer.init()){
-        recordLogData(INFO, "All Sensors Initialized");
+        recordLogData(INFO_, "All Sensors Initialized");
         digitalWrite(BUZZER, HIGH);
         delay(1000);
         digitalWrite(BUZZER, LOW);
     }
     else{
-        recordLogData(ERROR, "Some Sensors Failed to Initialize. Disabling those sensors.");
+        recordLogData(ERROR_, "Some Sensors Failed to Initialize. Disabling those sensors.");
         digitalWrite(BUZZER, HIGH);
         delay(200);
         digitalWrite(BUZZER, LOW);
@@ -120,7 +126,7 @@ void loop()
 
     last = time;
     computer.updateState();
-    recordLogData(INFO, computer.getStateString(), TO_USB);
+    recordLogData(INFO_, computer.getStateString(), TO_USB);
 
 
     // RASPBERRY PI TURN ON

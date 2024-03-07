@@ -64,7 +64,7 @@ bool setupSDCard()
 {
     int rdy = 0;
     sdReady = false;
-    if (sd.begin(SD_CONFIG) || sd.restart())
+    if (sd.begin(SD_CONFIG))
     {
         // Find file name
         int fileNo = 0;

@@ -5,7 +5,7 @@
 # include <RTClib.h>
 # include "RTC.h"
 
-class DS3231: public RTC {
+class DS3231: public RTCSensor {
 private: 
     RTC_DS3231 rtc;
     DateTime powerOnTime;

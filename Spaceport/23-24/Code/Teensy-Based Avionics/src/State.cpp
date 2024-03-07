@@ -75,7 +75,7 @@ bool State::init()
                 strcat(logData, " [");
                 strcat(logData, sensors[i]->getName());
                 strcat(logData, "] initialized.");
-                recordLogData(INFO, logData);
+                recordLogData(INFO_, logData);
             }
             else
             {
@@ -83,7 +83,7 @@ bool State::init()
                 strcat(logData, " [");
                 strcat(logData, sensors[i]->getName());
                 strcat(logData, "] failed to initialize.");
-                recordLogData(ERROR, logData);
+                recordLogData(ERROR_, logData);
             }
         }
         else
@@ -91,7 +91,7 @@ bool State::init()
             strcpy(logData, "Sensor [");
             strcat(logData, SENSOR_NAMES[i]);
             strcat(logData, "] was not added via addSensor().");
-            recordLogData(ERROR, logData);
+            recordLogData(ERROR_, logData);
         }
     }
     if (radio)
@@ -121,7 +121,7 @@ void State::updateSensors()
             {
                 Wire.end();
                 Wire.begin();
-                recordLogData(ERROR, "I2C Error");
+                recordLogData(ERROR_, "I2C Error");
                 sensors[i]->update();
                 delay(10);
                 sensors[i]->update();
@@ -219,7 +219,7 @@ void State::updateState()
         digitalWrite(LED_BUILTIN, HIGH);
         delay(500);
         digitalWrite(LED_BUILTIN, LOW);
-        recordLogData(WARNING, "Dumping data after 25 minutes.");
+        recordLogData(WARNING_, "Dumping data after 25 minutes.");
     }
     setDataString();
     if (recordOwnFlightData)
@@ -366,47 +366,47 @@ void State::determineStage()
         timeOfLaunch = timeAbsolute;
         timePreviousStage = timeAbsolute;
         strcpy(launchTimeOfDay, gps->getTimeOfDay());
-        recordLogData(INFO, "Launch detected.");
-        recordLogData(INFO, "Printing static data.");
+        recordLogData(INFO_, "Launch detected.");
+        recordLogData(INFO_, "Printing static data.");
         for (int i = 0; i < NUM_MAX_SENSORS; i++)
         {
             if (sensorOK(sensors[i]))
             {
                 char logData[200];
                 snprintf(logData, 200, "%s: %s", sensors[i]->getName(), sensors[i]->getStaticDataString());
-                recordLogData(INFO, logData);
+                recordLogData(INFO_, logData);
             }
         }
     }//TODO: Add checks for each sensor being ok and decide what to do if they aren't.
     else if (stageNumber == 1 && acceleration.z() < 10)
     {
         stageNumber = 2;
-        recordLogData(INFO, "Coasting detected.");
+        recordLogData(INFO_, "Coasting detected.");
     }
     else if (stageNumber == 2 && baroVelocity <= 0 && timeSinceLaunch > 15)
     {
         char logData[100];
         snprintf(logData, 100, "Apogee detected at %.2f m.", position.z());
-        recordLogData(INFO, logData);
+        recordLogData(INFO_, logData);
         stageNumber = 3;
-        recordLogData(INFO, "Drogue conditions detected.");
+        recordLogData(INFO_, "Drogue conditions detected.");
     }
     else if (stageNumber == 3 && baro->getRelAltFt() < 1000 && timeSinceLaunch > 20)
     {
         stageNumber = 4;
-        recordLogData(INFO, "Main parachute conditions detected.");
+        recordLogData(INFO_, "Main parachute conditions detected.");
     }
     else if (stageNumber == 4 && baroVelocity > -1 && baro->getRelAltFt() < 66 && timeSinceLaunch > 25)
     {
         stageNumber = 5;
-        recordLogData(INFO, "Landing detected. Waiting for 5 seconds to dump data.");
+        recordLogData(INFO_, "Landing detected. Waiting for 5 seconds to dump data.");
     }
     else if (stageNumber == 5 && timeSinceLaunch > 30)
     {
         if (landingCounter++ >= 50)
         { // roughly 5 seconds of data after landing
             setRecordMode(GROUND);
-            recordLogData(INFO, "Dumped data after landing.");
+            recordLogData(INFO_, "Dumped data after landing.");
         }
     }
 }

@@ -113,8 +113,8 @@ bool RFM69HCW::sendBuffer()
 {
     if (this->totalPackets >= this->id)
         return true;
-    memcpy(this->buf, this->msg + this->totalPackets * this->bufSize, min(this->bufSize, this->msgLen - this->totalPackets * this->bufSize));
-    this->radio.send(this->buf, min(this->bufSize, this->msgLen - this->totalPackets * this->bufSize));
+    memcpy(this->buf, this->msg + this->totalPackets * this->bufSize, min((int)this->bufSize,(int)( this->msgLen - this->totalPackets * this->bufSize)));
+    this->radio.send(this->buf, min((int)this->bufSize, (int)(this->msgLen - this->totalPackets * this->bufSize)));
     this->totalPackets++;
     return this->totalPackets == this->id;
 }
@@ -153,7 +153,7 @@ const char *RFM69HCW::rx()
             else // otherwise append to the end of the message, removing the \0 from last time
             {
                 int len = strlen(this->msg);
-                memcpy(this->msg + len, this->buf, min(MSG_LEN - (len + receivedLen), receivedLen));
+                memcpy(this->msg + len, this->buf, min((int)MSG_LEN - (len + receivedLen), (int)receivedLen));
                 this->msg[min(MSG_LEN, len + receivedLen)] = '\0'; // make sure we don't go over MSG_LEN
             }
             this->id++;
@@ -588,12 +588,27 @@ int max(int a, int b)
 
 #endif
 
-#ifndef min
-int min(int a, int b)
+int min(const uint8_t &a, const uint8_t &b)
 {
     if (a < b)
         return a;
     return b;
 }
-
-#endif
+int min(const int a, const uint8_t &b)
+{
+    if (a < b)
+        return a;
+    return b;
+}
+int min(const uint8_t &a, const int b)
+{
+    if (a < b)
+        return a;
+    return b;
+}
+int min(const int a, const int b)
+{
+    if (a < b)
+        return a;
+    return b;
+}

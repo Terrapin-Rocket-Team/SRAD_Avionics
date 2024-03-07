@@ -9,9 +9,9 @@
 #include <imumaths.h>
 #include "Sensor.h"
 
-class RTC : public Sensor{
+class RTCSensor : public Sensor{
 public:
-    virtual ~RTC() {}; // virtual destructor
+    virtual ~RTCSensor() {}; // virtual destructor
     virtual imu::Vector<2> getTimeOn() = 0; // ms
     virtual imu::Vector<2> getTimeSinceLaunch() = 0; // ms
     virtual DateTime getLaunchTime() = 0; 

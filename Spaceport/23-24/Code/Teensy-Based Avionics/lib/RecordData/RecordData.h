@@ -9,10 +9,10 @@ extern PSRAM *ram;
 
 enum LogType
 {
-    LOG,
-    ERROR,
-    WARNING,
-    INFO
+    LOG_,
+    ERROR_,
+    WARNING_,
+    INFO_
 };
 enum Dest
 {

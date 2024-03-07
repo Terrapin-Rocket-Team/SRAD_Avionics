@@ -4,6 +4,7 @@
 #include "sdCard.h"
 
 extern "C" uint8_t external_psram_size;
+
 class PSRAM
 {
 public:

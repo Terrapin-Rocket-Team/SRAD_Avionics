@@ -75,7 +75,7 @@ void MAX_M10S::update()
     fixQual = m10s.getSIV();
     if (!hasFirstFix && fixQual >= 3)
     {
-        recordLogData(INFO, "GPS has first fix."); //Log this data when the new data logging branch is merged.
+        recordLogData(INFO_, "GPS has first fix."); //Log this data when the new data logging branch is merged.
 
         
         digitalWrite(33, HIGH);
