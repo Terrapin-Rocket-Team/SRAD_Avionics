@@ -404,8 +404,8 @@ void State::determineStage()
     }
     else if (stageNumber == 5 && timeSinceLaunch > 30)
     {
-        if (landingCounter++ >= 50)
-        { // roughly 5 seconds of data after landing
+        if (landingCounter++ >= 600)
+        { // roughly 60 seconds of data after landing
             setRecordMode(GROUND);
             recordLogData(INFO, "Dumped data after landing.");
         }
