@@ -353,7 +353,7 @@ void State::determineStage()
 {
     if (stageNumber == 0 && 
     (sensorOK(imu) || sensorOK(baro)) && 
-    (sensorOK(imu) ? imu->getAcceleration().z() > 25 : true) && 
+    (sensorOK(imu) ? abs(imu->getAcceleration().z()) > 25 : true) && 
     (sensorOK(baro) ? baro->getRelAltFt() > 60 : true))
     //if we are in preflight AND
     //we have either the IMU OR the barometer AND
@@ -379,7 +379,7 @@ void State::determineStage()
             }
         }
     }//TODO: Add checks for each sensor being ok and decide what to do if they aren't.
-    else if (stageNumber == 1 && acceleration.z() < 10)
+    else if (stageNumber == 1 && abs(acceleration.z()) < 10)
     {
         stageNumber = 2;
         recordLogData(INFO, "Coasting detected.");
@@ -397,7 +397,7 @@ void State::determineStage()
         stageNumber = 4;
         recordLogData(INFO, "Main parachute conditions detected.");
     }
-    else if (stageNumber == 4 && baroVelocity > -1 && baro->getRelAltFt() < 66 && timeSinceLaunch > 25)
+    else if (stageNumber == 4 && abs(baroVelocity) < 4 && baro->getRelAltFt() < 66 && timeSinceLaunch > 25)
     {
         stageNumber = 5;
         recordLogData(INFO, "Landing detected. Waiting for 5 seconds to dump data.");
