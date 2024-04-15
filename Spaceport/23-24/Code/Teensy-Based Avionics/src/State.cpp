@@ -178,8 +178,9 @@ void State::updateState()
 
         if (sensorOK(baro))
         {
-            baroVelocity = (baro->getRelAltM() - baroOldAltitude) / (millis() / 1000.0 - timeAbsolute);
-            baroOldAltitude = baro->getRelAltM();
+            double currentAltitude = baro->getRelAltM();
+            baroVelocity = (currentAltitude - baroOldAltitude) / (millis() / 1000.0 - timeAbsolute);
+            baroOldAltitude = currentAltitude;
         }
     }
     else
@@ -194,8 +195,9 @@ void State::updateState()
         {
             velocity.z() = (baro->getRelAltM() - position.z()) / (millis() / 1000.0 - timeAbsolute);
             position.z() = baro->getRelAltM();
-            baroVelocity = (baro->getRelAltM() - baroOldAltitude) / (millis() / 1000.0 - timeAbsolute);
-            baroOldAltitude = baro->getRelAltM();
+            double currentAltitude = baro->getRelAltM();
+            baroVelocity = (currentAltitude - baroOldAltitude) / (millis() / 1000.0 - timeAbsolute);
+            baroOldAltitude = currentAltitude;
         }
         if (sensorOK(imu))
         {
@@ -204,7 +206,10 @@ void State::updateState()
         }
     }
     timeAbsolute = millis() / 1000.0;
-    timeSinceLaunch = timeAbsolute - timeOfLaunch;
+    if (timeOfLaunch == 0)
+        timeSinceLaunch = 0;
+    else
+        timeSinceLaunch = timeAbsolute - timeOfLaunch;
     determineAccelerationMagnitude();
     determineStage();
     if(stageNumber > 0)
@@ -383,6 +388,8 @@ void State::determineStage()
     {
         stageNumber = 2;
         recordLogData(INFO, "Coasting detected.");
+        timePreviousStage = timeAbsolute;
+
     }
     else if (stageNumber == 2 && baroVelocity <= 0 && timeSinceLaunch > 15)
     {
@@ -391,16 +398,22 @@ void State::determineStage()
         recordLogData(INFO, logData);
         stageNumber = 3;
         recordLogData(INFO, "Drogue conditions detected.");
+        timePreviousStage = timeAbsolute;
+
     }
     else if (stageNumber == 3 && baro->getRelAltFt() < 1000 && timeSinceLaunch > 20)
     {
         stageNumber = 4;
         recordLogData(INFO, "Main parachute conditions detected.");
+        timePreviousStage = timeAbsolute;
+
     }
     else if (stageNumber == 4 && abs(baroVelocity) < 4 && baro->getRelAltFt() < 66 && timeSinceLaunch > 25)
     {
         stageNumber = 5;
-        recordLogData(INFO, "Landing detected. Waiting for 5 seconds to dump data.");
+        recordLogData(INFO, "Landing detected. Waiting for 60 seconds to dump data.");
+        timePreviousStage = timeAbsolute;
+
     }
     else if (stageNumber == 5 && timeSinceLaunch > 30)
     {
