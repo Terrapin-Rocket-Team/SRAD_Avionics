@@ -31,26 +31,26 @@ APRSMsg::APRSMsg() : _body()
 {
 }
 
-APRSMsg::APRSMsg(APRSMsg &other_msg)
-    : _type(other_msg.getType()), _body()
+APRSMsg::APRSMsg(APRSMsg &otherMsg)
+    : _type(otherMsg.getType()), _body()
 {
-    strcpy(_source, other_msg.getSource());
-    strcpy(_destination, other_msg.getDestination());
-    strcpy(_path, other_msg.getPath());
-    strcpy(_rawBody, other_msg.getRawBody());
-    _body.setData(other_msg.getBody()->getData());
+    strcpy(_source, otherMsg.getSource());
+    strcpy(_destination, otherMsg.getDestination());
+    strcpy(_path, otherMsg.getPath());
+    strcpy(_rawBody, otherMsg.getRawBody());
+    _body.setData(otherMsg.getBody()->getData());
 }
 
-APRSMsg &APRSMsg::operator=(APRSMsg &other_msg)
+APRSMsg &APRSMsg::operator=(APRSMsg &otherMsg)
 {
-    if (this != &other_msg)
+    if (this != &otherMsg)
     {
-        setSource(other_msg.getSource());
-        setDestination(other_msg.getDestination());
-        setPath(other_msg.getPath());
-        _type = other_msg.getType();
-        strcpy(_rawBody, other_msg.getRawBody());
-        _body.setData(other_msg.getBody()->getData());
+        setSource(otherMsg.getSource());
+        setDestination(otherMsg.getDestination());
+        setPath(otherMsg.getPath());
+        _type = otherMsg.getType();
+        strcpy(_rawBody, otherMsg.getRawBody());
+        _body.setData(otherMsg.getBody()->getData());
     }
     return *this;
 }
@@ -107,56 +107,56 @@ APRSBody *APRSMsg::getBody()
 bool APRSMsg::decode(char *message)
 {
     int len = strlen(message);
-    int pos_src = -1, pos_dest = -1, pos_path = -1;
+    int posSrc = -1, posDest = -1, posPath = -1;
     for (int i = 0; i < len; i++)
     {
-        if (message[i] == '>' && pos_src == -1)
-            pos_src = i;
-        if (message[i] == ',' && pos_dest == -1)
-            pos_dest = i;
-        if (message[i] == ':' && pos_path == -1)
-            pos_path = i;
+        if (message[i] == '>' && posSrc == -1)
+            posSrc = i;
+        if (message[i] == ',' && posDest == -1)
+            posDest = i;
+        if (message[i] == ':' && posPath == -1)
+            posPath = i;
     }
-    if (pos_src >= 8)
+    if (posSrc >= 8)
         return false;
-    if (pos_dest - (pos_src + 1) >= 8)
+    if (posDest - (posSrc + 1) >= 8)
         return false;
-    if (pos_path - (pos_dest + 1) >= 10)
+    if (posPath - (posDest + 1) >= 10)
         return false;
 
-    if (pos_src >= 0)
+    if (posSrc >= 0)
     {
-        strncpy(_source, message, pos_src);
-        _source[pos_src] = '\0';
+        strncpy(_source, message, posSrc);
+        _source[posSrc] = '\0';
     }
     else
     {
         _source[0] = '\0';
     }
 
-    if (pos_dest != -1 && pos_dest < pos_path)
+    if (posDest != -1 && posDest < posPath)
     {
-        strncpy(_path, message + pos_dest + 1, pos_path - (pos_dest + 1));
-        strncpy(_destination, message + pos_src + 1, pos_dest - (pos_src + 1));
-        _path[pos_path - (pos_dest + 1)] = '\0';
-        _destination[pos_dest - (pos_src + 1)] = '\0';
+        strncpy(_path, message + posDest + 1, posPath - (posDest + 1));
+        strncpy(_destination, message + posSrc + 1, posDest - (posSrc + 1));
+        _path[posPath - (posDest + 1)] = '\0';
+        _destination[posDest - (posSrc + 1)] = '\0';
     }
     else
     {
         _path[0] = '\0';
-        if (pos_src >= 0 && pos_path >= 0)
+        if (posSrc >= 0 && posPath >= 0)
         {
 
-            strncpy(_destination, message + pos_src + 1, pos_path - (pos_src + 1));
-            _destination[pos_path - (pos_src + 1)] = '\0';
+            strncpy(_destination, message + posSrc + 1, posPath - (posSrc + 1));
+            _destination[posPath - (posSrc + 1)] = '\0';
         }
         else
         {
             _destination[0] = '\0';
         }
     }
-    strcpy(_rawBody, message + pos_path + 1);
-    _rawBody[strlen(message + pos_path + 1)] = '\0';
+    strcpy(_rawBody, message + posPath + 1);
+    _rawBody[strlen(message + posPath + 1)] = '\0';
     _type = APRSMessageType(_rawBody[0]);
     _body.decode(_rawBody);
     return bool(_type);

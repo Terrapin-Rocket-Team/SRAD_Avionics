@@ -7,8 +7,11 @@
 #include <cstdint>
 #include <string>
 #include <cstring>
-#elif defined(__unix__)  // Linux
-// TODO
+#elif defined(__unix__) // Linux
+#include <bcm2835.h>
+#include <cstdint>
+#include <string>
+#include <cstring>
 #elif defined(__APPLE__) // OSX
 // TODO
 #endif

@@ -21,4 +21,4 @@
 # For more information see the manual pages of crontab(5) and cron(8)
 # 
 # m h  dom mon dow   command
-@reboot python ~/lv-github/scripts/video_handler.py
+@reboot python ~/lv-github/scripts/live_video_handler.py

@@ -116,18 +116,26 @@ sleep 1
 
 make install
 
+cd ../../
+
+echo "Building teensy interface..."
+sleep 1
+
+cd teensy-interface
+make
+
 echo "Finishing up..."
 sleep 1
 
-cd ../../
+cd ../
 
 chmod +x tests/localsave.sh
 chmod +x tests/localsave1080p.sh
 chmod +x tests/localsave1080pv2.sh
 chmod +x tests/networkstream.sh
 
-crontab crontab-config
+crontab -u ${SUDO_USER} crontab-config
 
-mkdir -p /home/${SUDO_USER}/video
+sudo -u ${SUDO_USER} bash -c "mkdir -p ~/video"
 
 echo "Setup complete!"

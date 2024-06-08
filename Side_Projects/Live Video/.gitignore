@@ -2,9 +2,9 @@
 *.mp4
 *.av1
 *.ivf
-/.vscode
-/build
-/radio-interface/build
-/aom
-/bcm2835*
-/RadioHead
+*.log
+.vscode/
+build/
+aom/
+bcm2835*/
+RadioHead/

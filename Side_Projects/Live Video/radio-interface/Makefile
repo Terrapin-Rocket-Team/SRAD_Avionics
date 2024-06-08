@@ -10,12 +10,12 @@ RADIOHEADBASE = ../RadioHead
 BUILDDIR      = build
 INCLUDE       = -I$(RADIOHEADBASE)
 
-all: rf69_video
+all: rf69v
 
 $(BUILDDIR)/RasPi.o: $(RADIOHEADBASE)/RHutil/RasPi.cpp
 				$(CC) $(CFLAGS) -c $(RADIOHEADBASE)/RHutil/RasPi.cpp $(INCLUDE) -o $@
 
-$(BUILDDIR)/rf69_video.o: rf69_video.cpp
+$(BUILDDIR)/rf69v.o: rf69v.cpp
 				$(CC) $(CFLAGS) -c $(INCLUDE) $< -o $@
 
 $(BUILDDIR)/APRSMsg.o: APRSMsg.cpp
@@ -42,9 +42,9 @@ $(BUILDDIR)/RHGenericDriver.o: $(RADIOHEADBASE)/RHGenericDriver.cpp
 $(BUILDDIR)/RHGenericSPI.o: $(RADIOHEADBASE)/RHGenericSPI.cpp
 				$(CC) $(CFLAGS) -c $(INCLUDE) $< -o $@
 
-rf69_video: $(BUILDDIR)/rf69_video.o $(BUILDDIR)/RH_RF69.o $(BUILDDIR)/RasPi.o $(BUILDDIR)/RHHardwareSPI.o $(BUILDDIR)/RHGenericDriver.o $(BUILDDIR)/RHGenericSPI.o $(BUILDDIR)/RHSPIDriver.o $(BUILDDIR)/APRSMsg.o $(BUILDDIR)/RFM69HCW.o
+rf69v: $(BUILDDIR)/rf69v.o $(BUILDDIR)/RH_RF69.o $(BUILDDIR)/RasPi.o $(BUILDDIR)/RHHardwareSPI.o $(BUILDDIR)/RHGenericDriver.o $(BUILDDIR)/RHGenericSPI.o $(BUILDDIR)/RHSPIDriver.o $(BUILDDIR)/APRSMsg.o $(BUILDDIR)/RFM69HCW.o
 				mkdir -p build
-				$(CC) $^ $(LIBS) -o $(BUILDDIR)/rf69_video
+				$(CC) $^ $(LIBS) -o $(BUILDDIR)/rf69v
 
 clean:
-				rm -rf $(BUILDDIR)/*.o $(BUILDDIR)/rf69_video
+				rm -rf $(BUILDDIR)/*.o $(BUILDDIR)/rf69v

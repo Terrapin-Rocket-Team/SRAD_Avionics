@@ -31,7 +31,7 @@ SOFTWARE.
 #include <cstdint>
 #include <string>
 #include <cstring>
-#elif defined(__unix__) // Linux
+#elif defined(__unix__)  // Linux
 #include <cstdint>
 #include <string>
 #include <cstring>
@@ -148,8 +148,8 @@ class APRSMsg
 {
 public:
     APRSMsg();
-    APRSMsg(APRSMsg &other_msg);
-    APRSMsg &operator=(APRSMsg &other_msg);
+    APRSMsg(APRSMsg &otherMsg);
+    APRSMsg &operator=(APRSMsg &otherMsg);
     virtual ~APRSMsg();
 
     const char *getSource();
