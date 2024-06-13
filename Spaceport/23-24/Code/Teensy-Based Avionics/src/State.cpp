@@ -139,51 +139,13 @@ void State::updateState()
 
     if (stageNumber > 4 && landingCounter > 50) // if landed and waited 5 seconds, don't update sensors.
         return;
-    
+    Serial.println("Updating State");
     updateSensors();
-    if (useKF && sensorOK(gps) && gps->getHasFirstFix() && stageNumber > 0)
-    {
-        // gps x y z barometer z
-        measurements[0] = gps->getDisplace().x();
-        measurements[1] = gps->getDisplace().y();
-        measurements[2] = gps->getDisplace().z();
-        measurements[3] = sensorOK(baro) ? baro->getRelAltM() : 0;
-        // imu x y z
-        if(sensorOK(imu))
-        {
-            inputs[0] = imu->getAcceleration().x();
-            inputs[1] = imu->getAcceleration().y();
-            inputs[2] = imu->getAcceleration().z();
-        }
-        else//If this is false, the filter is basically useless as far as I understand.
-        {
-            inputs[0] = 0;
-            inputs[1] = 0;
-            inputs[2] = 0;
-        }
-        akf::updateFilter(kfilter, timeAbsolute, sensorOK(gps) ? 1 : 0, sensorOK(baro) ? 1 : 0, sensorOK(imu) ? 1 : 0, measurements, inputs, &predictions);
-        // time, pos x, y, z, vel x, y, z, acc x, y, z
-        // ignore time return value.
-        position.x() = predictions[1];
-        position.y() = predictions[2];
-        position.z() = predictions[3];
-        velocity.x() = predictions[4];
-        velocity.y() = predictions[5];
-        velocity.z() = predictions[6];
-        acceleration.x() = predictions[7];
-        acceleration.y() = predictions[8];
-        acceleration.z() = predictions[9];
-
-        orientation = sensorOK(imu) ? imu->getOrientation() : imu::Quaternion(0, 0, 0, 1);
-
-        if (sensorOK(baro))
-        {
-            baroVelocity = (baro->getRelAltM() - baroOldAltitude) / (millis() / 1000.0 - timeAbsolute);
-            baroOldAltitude = baro->getRelAltM();
-        }
-    }
-    else
-    {
+    Serial.println("Updating Statee");
+    delay(100);
+    
+        Serial.println("Updating State1");
+        delay(100);
         if (sensorOK(gps))
         { 
             position = imu::Vector<3>(gps->getDisplace().x(), gps->getDisplace().y(), gps->getAlt());
@@ -202,10 +164,11 @@ void State::updateState()
             acceleration = imu->getAcceleration();
             orientation = imu->getOrientation();
         }
-    }
+    Serial.println("Updating State2");
     timeAbsolute = millis() / 1000.0;
     determineAccelerationMagnitude();
     determineStage();
+    Serial.println("Updating State3");
     if(stageNumber > 0)
         timeSincePreviousStage = timeAbsolute - timePreviousStage;
     if (stageNumber < 3)
@@ -221,9 +184,11 @@ void State::updateState()
         digitalWrite(LED_BUILTIN, LOW);
         recordLogData(WARNING_, "Dumping data after 25 minutes.");
     }
+    Serial.println("Updating State4");
     setDataString();
     if (recordOwnFlightData)
         recordFlightData(dataString);
+    Serial.println("Updating State5");
 }
 
 void State::setCsvHeader()
@@ -453,10 +418,17 @@ void State::setCsvString(char *dest, const char *start, int startSize, bool head
 
 bool State::sensorOK(const Sensor *sensor)
 {
-    if (sensor && *sensor)// not nullptr and initialized
-        return true;
-    return false;
+    Serial.println("Checking Sensor");
+    if (sensor == nullptr) {
+        Serial.println("Sensor is nullptr");
+        return false;
+    }
+    bool initialized = static_cast<bool>(*sensor);
+    Serial.print("Sensor initialized: ");
+    Serial.println(initialized);
+    return initialized;
 }
+
 
 #pragma endregion
 

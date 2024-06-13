@@ -32,11 +32,8 @@ void recordLogData(double timeStamp, LogType type, const char *data, Dest dest)
 
     if (dest == BOTH || dest == TO_USB)
     {
-        // if (!Serial)
-        //     Serial.begin(9600);
-
-        // Serial.print(logPrefix);
-        // Serial.println(data);
+        Serial.print(logPrefix);
+        Serial.println(data);
     }
     if ((dest == BOTH || dest == TO_FILE) && isSDReady())
     {

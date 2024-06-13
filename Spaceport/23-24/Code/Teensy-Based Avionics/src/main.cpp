@@ -14,7 +14,7 @@ DS3231 rtc();               // I2C Address 0x68
 APRSConfig config = {"KC3UTM", "APRS", "WIDE1-1", '[', '/'};
 RadioSettings settings = {433.775, true, false, &hardware_spi, 10, 31, 32};
 RFM69HCW radio = {settings, config};
-State computer;// = useKalmanFilter = true, stateRecordsOwnData = true
+State computer; // = useKalmanFilter = true, stateRecordsOwnData = true
 uint32_t radioTimer = millis();
 
 #ifdef TEENSYDUINO                      // Check if compiling for Teensy
@@ -24,26 +24,37 @@ uint8_t external_psram_size = 0; // Set a default value for other platforms
 #endif
 
 PSRAM *ram;
-
+#ifdef TEENSYDUINO
 #define BUZZER 33
-#define BMP_ADDR_PIN 36
+#define BMP_ADDR_PIN 37
+#else
+#define BUZZER D7
+#define BMP_ADDR_PIN D8
+#endif
 
 static double last = 0; // for better timing than "delay(100)"
 
 void setup()
 {
+    Serial.begin(9600);
+    while (!Serial && millis() < 5000)
+        ; // wait for serial to open or 5 seconds
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, HIGH);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(1000);
     recordLogData(INFO_, "Initializing Avionics System. 10 second delay to prevent unnecessary file generation.", TO_USB);
+    digitalWrite(LED_BUILTIN, HIGH);
     delay(5000);
-
+    digitalWrite(LED_BUILTIN, LOW);
     pinMode(BMP_ADDR_PIN, OUTPUT);
     digitalWrite(BMP_ADDR_PIN, HIGH);
 
     pinMode(LED_BUILTIN, OUTPUT);
-    pinMode(BUZZER, OUTPUT); //its very loud during testing
+    pinMode(BUZZER, OUTPUT); // its very loud during testing
 
-    pinMode(0, OUTPUT); // RASPBERRY PI TURN ON
-    pinMode(1, OUTPUT); // RASPBERRY PI TURN ON
-
+    // pinMode(0, OUTPUT); // RASPBERRY PI TURN ON
+    // pinMode(1, OUTPUT); // RASPBERRY PI TURN ON
 
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);
@@ -86,13 +97,15 @@ void setup()
     if (!computer.addSensor(&bno))
         recordLogData(INFO_, "Failed to add BNO055 Sensor");
     computer.setRadio(&radio);
-    if (computer.init()){
+    if (computer.init())
+    {
         recordLogData(INFO_, "All Sensors Initialized");
         digitalWrite(BUZZER, HIGH);
         delay(1000);
         digitalWrite(BUZZER, LOW);
     }
-    else{
+    else
+    {
         recordLogData(ERROR_, "Some Sensors Failed to Initialize. Disabling those sensors.");
         digitalWrite(BUZZER, HIGH);
         delay(200);
@@ -111,29 +124,34 @@ void setup()
 static bool more = false;
 void loop()
 {
+    Serial.println("loop");
     double time = millis();
 
-    if (time - radioTimer >= 2000)
-    {
-        more = computer.transmit();
-        radioTimer = time;
-    }
-    if (radio.mode() != RHGenericDriver::RHModeTx && more){
-        more = !radio.sendBuffer();
-    }
+    // if (time - radioTimer >= 2000)
+    // {
+    //     //more = computer.transmit();
+    //     radioTimer = time;
+    // }
+    // if (radio.mode() != RHGenericDriver::RHModeTx && more){
+    //     more = !radio.sendBuffer();
+    // }
     if (time - last < 100)
         return;
 
     last = time;
+    Serial.println("update");
     computer.updateState();
+    Serial.println("record");
     recordLogData(INFO_, computer.getStateString(), TO_USB);
 
-
+    Serial.println("loop2");
     // RASPBERRY PI TURN ON
-    if (time / 1000.0 > 600) {
-        digitalWrite(0, HIGH);
-    }
-    if (computer.getStageNum() == 1) {
-        digitalWrite(1, HIGH);
-    }
+    // if (time / 1000.0 > 600)
+    // {
+    //     digitalWrite(0, HIGH);
+    // }
+    // if (computer.getStageNum() == 1)
+    // {
+    //     digitalWrite(1, HIGH);
+    // }
 }
