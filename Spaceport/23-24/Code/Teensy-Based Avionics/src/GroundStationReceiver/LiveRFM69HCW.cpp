@@ -923,8 +923,8 @@ namespace Live
 
     void RFM69HCW::i0()
     {
-        Serial.print("i mode: ");
-        Serial.println(devices[0]->radio.mode());
+        // Serial.print("i mode: ");
+        // Serial.println(devices[0]->radio.mode());
         if (devices[0] && devices[0]->mode == RHGenericDriver::RHModeTx)
             devices[0]->txe();
     }

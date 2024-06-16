@@ -26,24 +26,29 @@ void setup() {
 
     delay(15000);
 
-    // byte buffer[32];
+    // byte buffer[1024];
+    int count = 0;
+    byte burr;
 
     // Read from the file until there's nothing else in it
     while (file.available()) {
 
         // Read 8 bytes from the file and send them to the Serial buffer
-        // file.read(buffer, 4);
-        // Serial.write(buffer, 4);
+        // file.read(buffer, 1024);
+        // Serial.write(buffer, 1024);
 
 
         // Read a byte from the file and send it to the Serial buffer
-        Serial.write(file.read());
+        burr = file.read();
+        Serial.write(burr);
+        count++;
 
         // Hollistically, above lines take up 6% of desired time
         // Means every second, we manually delay .94 seconds, assuming bitrate of 600kbps (15773)
-        delayNanoseconds(15772); 
+        delayNanoseconds(15773); 
     }
-
+    Serial.println("Done reading file!");
+    Serial.println(count);
     // Close the file
     file.close();
 }

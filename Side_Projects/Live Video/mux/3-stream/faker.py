@@ -18,7 +18,7 @@ def write_mux():
         # repeat while there are still bytes to read from the files
         escape = False
         while not escape:
-            for i in range(15):
+            for i in range(50):
                 # read source 1
                 source1 = f1.read(source1_size)
                 # read source 2
@@ -34,9 +34,9 @@ def write_mux():
                 out.write(b'\x02')
                 out.write(source2_size.to_bytes(2, byteorder='big'))
                 out.write(source2)
-            out.write(b'\xfe')
-            out.write(len(telemetry_string).to_bytes(2, byteorder='big'))
-            out.write(telemetry_string.encode('utf-8'))
+            # out.write(b'\xfe')
+            # out.write(len(telemetry_string).to_bytes(2, byteorder='big'))
+            # out.write(telemetry_string.encode('utf-8', 'strict'))
 
 if __name__ == "__main__":
     write_mux()

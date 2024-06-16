@@ -7,12 +7,12 @@
 
 #define SERIAL_BAUD 1000000 // 1M Baud => 8us per byte
 
-#define RADIO1_HEADER 0x01
+#define RADIO1_HEADER 0xa7
 #define RADIO2_HEADER 0x02
 #define RADIO3_HEADER 0xfe
 
 // in bytes
-#define PACKET1_SIZE (10000 / 8)
+#define PACKET1_SIZE 5
 #define PACKET2_SIZE (10000 / 8)
 #define PACKET3_SIZE 80
 #define BLOCKING_SIZE 50
@@ -109,22 +109,25 @@ void setup()
     // Serial.begin(SERIAL_BAUD);
     delay(1000);
 
-    Serial.println("Starting Ground Station Receiver");
+    // Serial.println("Starting Ground Station Receiver");
 
-    if (!radio1.begin())
-        Serial.println("Radio1 failed to initialize");
-    else
-        Serial.println("Radio1 initialized");
+    radio1.begin();
+    radio2.begin();
+    radio3.init();
+    // if (!radio1.begin())
+    //     Serial.println("Radio1 failed to initialize");
+    // else
+    //     Serial.println("Radio1 initialized");
 
-    if (!radio2.begin())
-        Serial.println("Radio2 failed to initialize");
-    else
-        Serial.println("Radio2 initialized");
+    // if (!radio2.begin())
+    //     Serial.println("Radio2 failed to initialize");
+    // else
+    //     Serial.println("Radio2 initialized");
 
-    if (!radio3.init())
-        Serial.println("Radio3 failed to initialize");
-    else
-        Serial.println("Radio3 initialized");
+    // if (!radio3.init())
+    //     Serial.println("Radio3 failed to initialize");
+    // else
+    //     Serial.println("Radio3 initialized");
 
     // Serial.print("mux started");
 
@@ -204,7 +207,7 @@ void loop()
             if (sendi == 0)
             {
                 curPacketSize = min(r1.packetSize, r1.bufftop - r1.buffbot > 0 ? r1.bufftop - r1.buffbot : BUFF1_SIZE - r1.buffbot + r1.bufftop);
-                if (r1.bufftop == r1.buffbot)
+                if (r1.bufftop == r1.buffbot && r1.settings.firstTime)
                     curPacketSize = 0;
                 if (curPacketSize > 0)
                 {
@@ -225,6 +228,7 @@ void loop()
                 Serial.write(buff1[r1.buffbot]);
                 r1.buffbot = (r1.buffbot + 1) % BUFF1_SIZE;
                 sendi++;
+                delayMicroseconds(5);
             }
 
             // check if end of packet
@@ -241,9 +245,8 @@ void loop()
             // check if start of packet
             if (sendi == 0)
             {
-
                 curPacketSize = min(r2.packetSize, r2.bufftop - r2.buffbot > 0 ? r2.bufftop - r2.buffbot : BUFF2_SIZE - r2.buffbot + r2.bufftop);
-                if (r2.bufftop == r2.buffbot)
+                if (r2.bufftop == r2.buffbot && r2.settings.firstTime)
                     curPacketSize = 0;
                 if (curPacketSize > 0)
                 {
@@ -261,7 +264,7 @@ void loop()
             int blockSize = min(BLOCKING_SIZE, Serial.availableForWrite());
             for (int i = 0; i < blockSize && r2.buffbot != r2.bufftop && sendi < curPacketSize; i++)
             {
-                // Serial.write(buff2[r2.buffbot]);
+                Serial.write(buff2[r2.buffbot]);
                 r2.buffbot = (r2.buffbot + 1) % BUFF2_SIZE;
                 sendi++;
             }
@@ -300,7 +303,7 @@ void loop()
         int blockSize = min(BLOCKING_SIZE, Serial.availableForWrite());
         for (int i = 0; i < blockSize && r3.buffbot != r3.bufftop && sendi < curPacketSize; i++)
         {
-            // Serial.write(buff3[r3.buffbot]);
+            Serial.write(buff3[r3.buffbot]);
             r3.buffbot = (r3.buffbot + 1) % BUFF3_SIZE;
             sendi++;
         }
