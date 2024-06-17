@@ -4,6 +4,8 @@
 #include "../Radio/RFM69HCW.h"
 #include "../Radio/APRS/APRSCmdMsg.h"
 #include "LiveRFM69HCW.h"
+#include <SD.h>
+#include <SPI.h>
 
 #define SERIAL_BAUD 1000000 // 1M Baud => 8us per byte
 
@@ -12,16 +14,14 @@
 #define RADIO3_HEADER 0xfe
 
 // in bytes
-#define PACKET1_SIZE (10000 / 8)
-#define PACKET2_SIZE (10000 / 8)
-#define PACKET3_SIZE 80
-#define BLOCKING_SIZE 50
+#define VID_PACKET_SIZE 400
+#define PACKET3_SIZE 60
 #define COMMAND_SIZE 4
 
-// makes them 4 times as large
-#define BUFF1_SIZE (PACKET1_SIZE * 4)
-#define BUFF2_SIZE (PACKET2_SIZE * 4)
-#define BUFF3_SIZE (PACKET3_SIZE * 4)
+// makes them 30 times as large
+#define BUFF1_SIZE (VID_PACKET_SIZE * 250)
+#define BUFF2_SIZE (VID_PACKET_SIZE * 250)
+#define BUFF3_SIZE (PACKET3_SIZE * 30)
 
 // 1, 2 are for live radio, 3 is for telemetry, 4 is for input
 uint8_t buff1[BUFF1_SIZE];
@@ -30,7 +30,7 @@ uint8_t buff3[BUFF3_SIZE];
 
 // live video stuff
 
-#define MSG_SIZE 25000
+#define MSG_SIZE 5000
 #define TX_ADDR 0x02
 #define RX_ADDR 0x01
 #define SYNC1 0x00
@@ -44,7 +44,6 @@ struct LiveSettings
     unsigned int pos;
     bool hasL;
     bool hasA;
-    bool firstTime = true;
 };
 
 struct RadioObject
@@ -56,7 +55,6 @@ struct RadioObject
     uint8_t *buffer;
     int buffsize;
     int bufftop; // index of the next byte to be written
-    int buffbot; // index of the next byte to be read
 };
 
 struct LiveRadioObject
@@ -66,7 +64,6 @@ struct LiveRadioObject
     byte *buffer;
     int buffsize;
     int bufftop; // index of the next byte to be written
-    int buffbot; // index of the next byte to be read
     LiveSettings settings;
 };
 
@@ -92,17 +89,17 @@ RFM69HCW radio3(&settings3);
 
 LiveSettings lset1 = {false, false, true, 0, false, false};
 LiveSettings lset2 = {false, false, true, 0, false, false};
-LiveRadioObject r1 = {&radio1, PACKET1_SIZE, buff1, BUFF1_SIZE, 0, 0, lset1};
-LiveRadioObject r2 = {&radio2, PACKET2_SIZE, buff2, BUFF2_SIZE, 0, 0, lset2};
-RadioObject r3 = {&msg3, &cmd3, &radio3, PACKET3_SIZE, buff3, BUFF3_SIZE, 0, 0};
+LiveRadioObject r1 = {&radio1, VID_PACKET_SIZE, buff1, BUFF1_SIZE, 0, lset1};
+LiveRadioObject r2 = {&radio2, VID_PACKET_SIZE, buff2, BUFF2_SIZE, 0, lset2};
+RadioObject r3 = {&msg3, &cmd3, &radio3, PACKET3_SIZE, buff3, BUFF3_SIZE, 0};
 
 // make an array of pointers to the radio objects
 // void *radios[] = {&r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r1, &r2, &r3};
 
-int counter = 1;
+int counter = 0;
 int radioIndex = 1;
 uint16_t curPacketSize = 0;
-uint16_t sendi = 0;
+uint16_t sentHeader = 0;
 
 void setup()
 {
@@ -146,53 +143,21 @@ void loop()
     {
         if (radio3.dequeueReceive(&msg3))
         {
-            char buffer[80];
+            char buffer[PACKET3_SIZE];
             aprsToSerial::encodeAPRSForSerial(msg3, buffer, 80, radio3.RSSI());
-            // Serial.println(buffer);
-
             // write to circular buffer for radio3 (assuming PACKET3_SIZE bytes of data)
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < PACKET3_SIZE && r3.bufftop < r3.buffsize; i++)
             {
                 buff3[r3.bufftop] = buffer[i];
-                // Serial.print(r3.bufftop);
-                // Serial.print((r3.bufftop + 1) % 320);
-                // Serial.print(" ");
-                r3.bufftop = (r3.bufftop + 1) % BUFF3_SIZE;
+                r3.bufftop = (r3.bufftop + 1);
                 // delay(15);
             }
-            // Serial.println();
-            // Serial.println(r3.bufftop);
-            // Serial.println(r3.buffbot);
-
-            // print buffer for debugging
-            // for (int i = 0; i < BUFF3_SIZE; i++)
-            // {
-            //     Serial.print(buff3[i]);
-            // }
-
-            // Serial.print((char *)buff3);
         }
-        // if(counter % 50 == 0) // Send a command every 50x a message is received (or every 25 seconds)
-        //     radio.enqueueSend(&cmd);
-
-        // if(counter == 190) // Send a command after 190x a message is received (or after 95 seconds) to launch the rocket
-        // {
-        //     cmd.data.Launch = !cmd.data.Launch;
-        //     radio.enqueueSend(&cmd);
-        // }
-        // counter++;
     }
 
     // read live radio
     readLiveRadio(&r1);
     readLiveRadio(&r2);
-
-    // Serial.println((char *)r1.buffer);
-    // Serial.println((char *)r2.buffer);
-    // Serial.println((char *)r3.buffer);
-
-    // send to serial
-    // Serial.println(radioIndex);
 
     if (radioIndex <= 30)
     {
@@ -200,17 +165,20 @@ void loop()
         // radio1
         if (radioIndex % 2 == 0)
         {
+            // Serial.print("Bufftop: ");
+            // Serial.println("SENDI");
             // check if start of packet
-            if (sendi == 0)
+            if (sentHeader == 0)
             {
-                curPacketSize = min(r1.packetSize, r1.bufftop - r1.buffbot > 0 ? r1.bufftop - r1.buffbot : BUFF1_SIZE - r1.buffbot + r1.bufftop);
-                if (r1.bufftop == r1.buffbot)
-                    curPacketSize = 0;
-                if (curPacketSize > 0)
+                // Serial.print("e");
+                // Serial.println(r1.bufftop);
+
+                if (r1.bufftop > VID_PACKET_SIZE)
                 {
                     Serial.write(RADIO1_HEADER);
-                    Serial.write(curPacketSize >> 8);
-                    Serial.write(curPacketSize & 0xff);
+                    Serial.write(r1.bufftop >> 8);
+                    Serial.write(r1.bufftop & 0xff);
+                    sentHeader++;
                 }
                 else
                 {
@@ -218,129 +186,128 @@ void loop()
                 }
             }
 
-            // write block of data to serial
-            int blockSize = min(BLOCKING_SIZE, Serial.availableForWrite());
-            for (int i = 0; i < blockSize && r1.buffbot != r1.bufftop && sendi < curPacketSize; i++)
+            if (sentHeader != 0)
             {
-                Serial.write(buff1[r1.buffbot]);
-                r1.buffbot = (r1.buffbot + 1) % BUFF1_SIZE;
-                sendi++;
-            }
+                // Serial.print("Dumping");
+                // Serial.println(r1.bufftop);
+                // if sent header for this packet, write block of data to serial
+                for (int i = 0; i < r1.bufftop; i++)
+                {
+                    Serial.write(buff1[i]);
+                    sentHeader++;
+                }
+                if (r1.bufftop > VID_PACKET_SIZE)
+                    sentHeader = 0;
 
-            // check if end of packet
-            if (sendi >= curPacketSize - 1 && sendi != 0)
-            {
+                // check if end of packet
                 radioIndex++;
-                sendi = 0;
                 curPacketSize = 0;
+                r1.bufftop = 0;
             }
         }
-        // radio2
-        else
+        else // radio 2
         {
             // check if start of packet
-            if (sendi == 0)
+            if (sentHeader == 0)
             {
 
-                curPacketSize = min(r2.packetSize, r2.bufftop - r2.buffbot > 0 ? r2.bufftop - r2.buffbot : BUFF2_SIZE - r2.buffbot + r2.bufftop);
-                if (r2.bufftop == r2.buffbot)
-                    curPacketSize = 0;
-                if (curPacketSize > 0)
+                if (r2.bufftop > VID_PACKET_SIZE)
                 {
                     Serial.write(RADIO2_HEADER);
-                    Serial.write(curPacketSize >> 8);
-                    Serial.write(curPacketSize & 0xff);
+                    Serial.write(r2.bufftop >> 8);
+                    Serial.write(r2.bufftop & 0xff);
+                    sentHeader++;
                 }
                 else
                 {
                     radioIndex++;
                 }
-            }
-
-            // write block of data to serial
-            int blockSize = min(BLOCKING_SIZE, Serial.availableForWrite());
-            for (int i = 0; i < blockSize && r2.buffbot != r2.bufftop && sendi < curPacketSize; i++)
-            {
-                // Serial.write(buff2[r2.buffbot]);
-                r2.buffbot = (r2.buffbot + 1) % BUFF2_SIZE;
-                sendi++;
-            }
-
-            // check if end of packet
-            if (sendi >= curPacketSize - 1 && sendi != 0)
-            {
-                radioIndex++;
-                sendi = 0;
-                curPacketSize = 0;
-            }
-        }
-    }
-    else
-    {
-
-        // send telemetry data
-        if (sendi == 0)
-        {
-            curPacketSize = min(r3.packetSize, r3.bufftop - r3.buffbot > 0 ? r3.bufftop - r3.buffbot : BUFF3_SIZE - r3.buffbot + r3.bufftop);
-            if (r3.bufftop == r3.buffbot)
-                curPacketSize = 0;
-            if (curPacketSize > 0)
-            {
-                Serial.write(RADIO3_HEADER);
-                Serial.write(curPacketSize >> 8);
-                Serial.write(curPacketSize & 0xff);
             }
             else
             {
-                radioIndex = 1;
+                // write block of data to serial
+                for (int i = 0; i < r2.bufftop; i++)
+                {
+                    Serial.write(buff2[i]);
+                    sentHeader++;
+                }
+
+                // check if end of packet
+                radioIndex++;
+                if (r2.bufftop > VID_PACKET_SIZE)
+                    sentHeader = 0;
+                curPacketSize = 0;
+                r2.bufftop = 0;
             }
         }
-
-        // write block of data to serial
-        int blockSize = min(BLOCKING_SIZE, Serial.availableForWrite());
-        for (int i = 0; i < blockSize && r3.buffbot != r3.bufftop && sendi < curPacketSize; i++)
+    }
+    // radio3
+    else
+    {
+        // Serial.println("Hit 3");
+        // check if start of packet
+        if (sentHeader == 0)
         {
-            // Serial.write(buff3[r3.buffbot]);
-            r3.buffbot = (r3.buffbot + 1) % BUFF3_SIZE;
-            sendi++;
+
+            if (r3.bufftop > PACKET3_SIZE)
+            {
+                Serial.write(RADIO3_HEADER);
+                Serial.write(r3.bufftop >> 8);
+                Serial.write(r3.bufftop & 0xff);
+                sentHeader++;
+            }
+            else
+            {
+                radioIndex = 1;;
+            }
         }
-
-        // check if end of packet
-        if (sendi >= curPacketSize - 1 && sendi != 0)
+        else
         {
+            // write block of data to serial
+            for (int i = 0; i < r3.bufftop; i++)
+            {
+                Serial.write(buff3[i]);
+                sentHeader++;
+            }
+
+            // check if end of packet
             radioIndex = 1;
-            sendi = 0;
+            if (r3.bufftop > PACKET3_SIZE)
+                sentHeader = 0;
             curPacketSize = 0;
+            r3.bufftop = 0;
         }
     }
 
-    // read from serial
-    // if (Serial.available())
-    // {
-    //     // first byte is minutesUntilPowerOn, second byte is minutesUntilDataRecording, third byte is minutesUntilVideoStart, fourth byte is launch
-    //     if (Serial.available() >= COMMAND_SIZE)
-    //     {
-    //         byte command[COMMAND_SIZE];
-    //         for (int i = 0; i < COMMAND_SIZE; i++)
-    //         {
-    //             command[i] = Serial.read();
-    //         }
-
-    //         // set the command data
-    //         r3.cmd->data.MinutesUntilPowerOn = command[0];
-    //         r3.cmd->data.MinutesUntilDataRecording = command[1];
-    //         r3.cmd->data.MinutesUntilVideoStart = command[2];
-    //         r3.cmd->data.Launch = command[3];
-
-    //         // send the command
-    //         radio3.enqueueSend(r3.cmd);
-    //     }
-    //     else {
-    //         // reset the buffer
-    //         Serial.clear();
-    //     }
-    // }
+    // Serial.println(r1.bufftop);
 }
+
+// read from serial
+// if (Serial.available())
+// {
+//     // first byte is minutesUntilPowerOn, second byte is minutesUntilDataRecording, third byte is minutesUntilVideoStart, fourth byte is launch
+//     if (Serial.available() >= COMMAND_SIZE)
+//     {
+//         byte command[COMMAND_SIZE];
+//         for (int i = 0; i < COMMAND_SIZE; i++)
+//         {
+//             command[i] = Serial.read();
+//         }
+
+//         // set the command data
+//         r3.cmd->data.MinutesUntilPowerOn = command[0];
+//         r3.cmd->data.MinutesUntilDataRecording = command[1];
+//         r3.cmd->data.MinutesUntilVideoStart = command[2];
+//         r3.cmd->data.Launch = command[3];
+
+//         // send the command
+//         radio3.enqueueSend(r3.cmd);
+//     }
+//     else {
+//         // reset the buffer
+//         Serial.clear();
+//     }
+// }
 
 // adapted from radioHead functions
 void radioIdle(LiveRadioObject *rad)
@@ -373,7 +340,6 @@ void readLiveRadio(LiveRadioObject *rad)
 {
 
     using namespace Live;
-
     // Refill fifo here
     if (rad->radio->FifoNotEmpty() && rad->settings.hasTransmission)
     {
@@ -387,19 +353,20 @@ void readLiveRadio(LiveRadioObject *rad)
         rad->radio->settings.spi->transfer(RH_RF69_REG_00_FIFO);
 
         // data
-        while (rad->settings.pos < MSG_SIZE && rad->radio->FifoNotEmpty() && (rad->bufftop != rad->buffbot || rad->settings.firstTime))
+        while (rad->settings.pos < MSG_SIZE && rad->radio->FifoNotEmpty() && ((rad->bufftop) < (rad->buffsize)) && counter < VID_PACKET_SIZE)
         {
-            rad->settings.firstTime = false;
-            // write to circular buffer in rad
             rad->buffer[rad->bufftop] = rad->radio->settings.spi->transfer(0);
-            rad->bufftop = (rad->bufftop + 1) % rad->buffsize;
+            rad->bufftop = (rad->bufftop + 1);
 
             // Serial.write(rad->radio->settings.spi->transfer(0));
             rad->settings.pos++;
+            // Serial.println(rad->bufftop);
+            counter++;
         }
+        counter = 0;
         // Serial.println(rad->settings.pos);
 
-        rad->settings.firstTime = true;
+        // rad->settings.firstTime = true;
 
         // reset msgLen and toAddr, end transaction, and clear fifo through entering idle mode
         digitalWrite(rad->radio->settings.cs, HIGH);
@@ -458,18 +425,19 @@ void readLiveRadio(LiveRadioObject *rad)
             rad->settings.hasTransmission = true;
             rad->settings.hasL = rad->settings.hasA = false;
 
-            while (rad->settings.pos < MSG_SIZE && rad->radio->FifoNotEmpty() && (rad->bufftop != rad->buffbot || rad->settings.firstTime))
+            while (rad->settings.pos < MSG_SIZE && rad->radio->FifoNotEmpty() && rad->bufftop < rad->buffsize && counter < VID_PACKET_SIZE)
             {
-                rad->settings.firstTime = false;
-                // write to circular buffer in rad
                 rad->buffer[rad->bufftop] = rad->radio->settings.spi->transfer(0);
-                rad->bufftop = (rad->bufftop + 1) % rad->buffsize;
+                rad->bufftop = (rad->bufftop + 1);
 
                 // Serial.write(rad->radio->settings.spi->transfer(0));
                 rad->settings.pos++;
+                // Serial.println(rad->bufftop);
+                counter++;
             }
             // Serial.println(rad->settings.pos);
-            rad->settings.firstTime = true;
+            // rad->settings.firstTime = true;
+            counter = 0;
         }
         // reset msgLen and toAddr, end transaction, and clear fifo through entering idle mode
         digitalWrite(rad->radio->settings.cs, HIGH);
