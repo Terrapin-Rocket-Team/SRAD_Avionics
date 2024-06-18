@@ -241,7 +241,7 @@ void loop()
             if (sendi == 0)
             {
 
-                curPacketSize = min(r2.packetSize, r2.bufftop - r2.buffbot > 0 ? r2.bufftop - r2.buffbot : BUFF2_SIZE - r2.buffbot + r2.bufftop);
+                curPacketSize = min(r2.packetSize, r2.bufftop - r2.buffbot >= 0 ? r2.bufftop - r2.buffbot : BUFF2_SIZE - r2.buffbot + r2.bufftop);
                 
                 if (curPacketSize > 0)
                 {
@@ -279,7 +279,7 @@ void loop()
         // send telemetry data
         if (sendi == 0)
         {
-            curPacketSize = min(r3.packetSize, r3.bufftop - r3.buffbot > 0 ? r3.bufftop - r3.buffbot : BUFF3_SIZE - r3.buffbot + r3.bufftop);
+            curPacketSize = min(r3.packetSize, r3.bufftop - r3.buffbot >= 0 ? r3.bufftop - r3.buffbot : BUFF3_SIZE - r3.buffbot + r3.bufftop);
             if (curPacketSize > 0)
             {
                 Serial.write(RADIO3_HEADER);
