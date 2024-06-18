@@ -90,7 +90,6 @@ APRSHeader header = {"KC3UTM", "APRS", "WIDE1-1", '/', 'o'};
 APRSTelemMsg msg3(header);
 APRSCmdMsg cmd3(header);
 RadioSettings settings3 = {433.78, 0x02, 0x01, &hardware_spi, 15, 16, 14};
-RadioSettings settings3 = {433.78, 0x02, 0x01, &hardware_spi, 15, 16, 14};
 RFM69HCW radio3(&settings3);
 
 LiveSettings lset1 = {false, false, true, 0, false, false};
