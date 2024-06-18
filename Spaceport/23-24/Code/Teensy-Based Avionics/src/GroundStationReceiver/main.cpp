@@ -4,6 +4,7 @@
 #include "../Radio/RFM69HCW.h"
 #include "../Radio/APRS/APRSCmdMsg.h"
 #include "LiveRFM69HCW.h"
+#include "RecordData.h"
 
 #define SERIAL_BAUD 1000000 // 1M Baud => 8us per byte
 
@@ -87,7 +88,7 @@ Live::RFM69HCW radio2(&settings2, &config2);
 APRSHeader header = {"KC3UTM", "APRS", "WIDE1-1", '/', 'o'};
 APRSTelemMsg msg3(header);
 APRSCmdMsg cmd3(header);
-RadioSettings settings3 = {433.775, 0x02, 0x01, &hardware_spi, 10, 31, 32};
+RadioSettings settings3 = {433.78, 0x02, 0x01, &hardware_spi, 15, 16, 14};
 RFM69HCW radio3(&settings3);
 
 LiveSettings lset1 = {false, false, true, 0, false, false};
@@ -104,10 +105,12 @@ int radioIndex = 0;
 uint16_t curPacketSize = 0;
 uint16_t sendi = 0;
 
+PSRAM *ram;
+
 void setup()
 {
     // Serial.begin(SERIAL_BAUD);
-    delay(1000);
+    delay(2000);
 
     Serial.println("Starting Ground Station Receiver");
 
@@ -135,23 +138,45 @@ void setup()
     // cmd3.data.Launch = false;
 
     // sdjkfhkjsd(&r3);
+
+    if(setupSDCard())
+        Serial.println("SD Card initialized");
+    else
+        Serial.println("SD Card failed to initialize");
+
+    ram = new PSRAM();
+
+    if(ram->init())
+        Serial.println("PSRAM initialized");
+    else
+        Serial.println("PSRAM failed to initialize");
 }
 
+bool written = false;
 void loop()
 {
 
-    // delay(10);
+    delay(100);
+    if (isSDReady() && ram->isReady() && (int)(millis() % 5000) == 0)
+    {
+        written = true;
+        ram->dumpFlightData();
+    }
+    else
+    {
+        written = false;
+    }
 
     if (radio3.update())
     {
         if (radio3.dequeueReceive(&msg3))
         {
-            char buffer[80];
-            aprsToSerial::encodeAPRSForSerial(msg3, buffer, 80, radio3.RSSI());
+            char buffer[150];
+            aprsToSerial::encodeAPRSForSerial(msg3, buffer, 150, radio3.RSSI());
             // Serial.println(buffer);
 
             // write to circular buffer for radio3 (assuming PACKET3_SIZE bytes of data)
-            for (int i = 0; i < PACKET3_SIZE; i++)
+            for (int i = 0; i < 150; i++)
             {
                 buff3[r3.bufftop] = buffer[i];
                 // Serial.print(r3.bufftop);
@@ -204,12 +229,16 @@ void loop()
             if (sendi == 0)
             {
                 curPacketSize = min(r1.packetSize, r1.bufftop - r1.buffbot >= 0 ? r1.bufftop - r1.buffbot : BUFF1_SIZE - r1.buffbot + r1.bufftop);
-                
+
                 if (curPacketSize > 0)
                 {
+
                     Serial.write(RADIO1_HEADER);
+                    ram->write(RADIO1_HEADER);
                     Serial.write(curPacketSize >> 8);
+                    ram->write(curPacketSize >> 8);
                     Serial.write(curPacketSize & 0xff);
+                    ram->write(curPacketSize & 0xff);
                 }
                 else
                 {
@@ -222,6 +251,7 @@ void loop()
             for (int i = 0; i < blockSize && r1.buffbot != r1.bufftop && sendi < curPacketSize; i++)
             {
                 Serial.write(buff1[r1.buffbot]);
+                ram->write(buff1[r1.buffbot]);
                 r1.buffbot = (r1.buffbot + 1) % BUFF1_SIZE;
                 sendi++;
             }
@@ -241,13 +271,16 @@ void loop()
             if (sendi == 0)
             {
 
-                curPacketSize = min(r2.packetSize, r2.bufftop - r2.buffbot > 0 ? r2.bufftop - r2.buffbot : BUFF2_SIZE - r2.buffbot + r2.bufftop);
-                
+                curPacketSize = min(r2.packetSize, r2.bufftop - r2.buffbot >= 0 ? r2.bufftop - r2.buffbot : BUFF2_SIZE - r2.buffbot + r2.bufftop);
+
                 if (curPacketSize > 0)
                 {
                     Serial.write(RADIO2_HEADER);
+                    ram->write(RADIO2_HEADER);
                     Serial.write(curPacketSize >> 8);
+                    ram->write(curPacketSize >> 8);
                     Serial.write(curPacketSize & 0xff);
+                    ram->write(curPacketSize & 0xff);
                 }
                 else
                 {
@@ -259,7 +292,8 @@ void loop()
             int blockSize = min(BLOCKING_SIZE, Serial.availableForWrite());
             for (int i = 0; i < blockSize && r2.buffbot != r2.bufftop && sendi < curPacketSize; i++)
             {
-                // Serial.write(buff2[r2.buffbot]);
+                Serial.write(buff2[r2.buffbot]);
+                ram->write(buff2[r2.buffbot]);
                 r2.buffbot = (r2.buffbot + 1) % BUFF2_SIZE;
                 sendi++;
             }
@@ -279,12 +313,15 @@ void loop()
         // send telemetry data
         if (sendi == 0)
         {
-            curPacketSize = min(r3.packetSize, r3.bufftop - r3.buffbot > 0 ? r3.bufftop - r3.buffbot : BUFF3_SIZE - r3.buffbot + r3.bufftop);
+            curPacketSize = min(r3.packetSize, r3.bufftop - r3.buffbot >= 0 ? r3.bufftop - r3.buffbot : BUFF3_SIZE - r3.buffbot + r3.bufftop);
             if (curPacketSize > 0)
             {
                 Serial.write(RADIO3_HEADER);
+                ram->write(RADIO3_HEADER);
                 Serial.write(curPacketSize >> 8);
+                ram->write(curPacketSize >> 8);
                 Serial.write(curPacketSize & 0xff);
+                ram->write(curPacketSize & 0xff);
             }
             else
             {
@@ -297,6 +334,7 @@ void loop()
         for (int i = 0; i < blockSize && r3.buffbot != r3.bufftop && sendi < curPacketSize; i++)
         {
             Serial.write(buff3[r3.buffbot]);
+            ram->write(buff3[r3.buffbot]);
             r3.buffbot = (r3.buffbot + 1) % BUFF3_SIZE;
             sendi++;
         }
@@ -393,7 +431,6 @@ void readLiveRadio(LiveRadioObject *rad)
             rad->settings.pos++;
         }
         // Serial.println(rad->settings.pos);
-
 
         // reset msgLen and toAddr, end transaction, and clear fifo through entering idle mode
         digitalWrite(rad->radio->settings.cs, HIGH);

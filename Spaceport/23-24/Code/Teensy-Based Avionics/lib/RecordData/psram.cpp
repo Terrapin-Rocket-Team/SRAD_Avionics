@@ -52,6 +52,15 @@ void PSRAM::print(const char *data, bool isFlightData)
         }
 }
 
+void PSRAM::write(const uint8_t data)
+{
+    if (ready)
+    {
+        *cursorStart = data;
+        cursorStart++;
+    }
+}
+
 // Dump FRAM to SD Card. Only to be called after flight has landed or timeout is reached.
 bool PSRAM::dumpFlightData()
 {
@@ -63,8 +72,11 @@ bool PSRAM::dumpFlightData()
             flightDataFile.write(memBegin, cursorStart - memBegin);
             flightDataFile.close();
         }
-        else return false;
-    } else return false;
+        else
+            return false;
+    }
+    else
+        return false;
 
     cursorStart = memBegin;
     return true;
@@ -72,7 +84,8 @@ bool PSRAM::dumpFlightData()
 
 bool PSRAM::dumpLogData()
 { // more complicated because data is stored in reverse order
-    if (!isSDReady() || !ready){
+    if (!isSDReady() || !ready)
+    {
         bb.aonoff(BUZZER, 200);
         return false;
     }
@@ -82,11 +95,12 @@ bool PSRAM::dumpLogData()
     int i;
     logFile = sd.open(logFileName, FILE_WRITE);
 
-    if (!logFile){
+    if (!logFile)
+    {
         bb.aonoff(BUZZER, 200, 3);
         return false;
     }
-    
+
     while (writeCursor > cursorEnd)
     {
 

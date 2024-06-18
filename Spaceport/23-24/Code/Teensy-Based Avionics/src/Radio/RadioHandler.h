@@ -46,7 +46,6 @@ namespace radioHandler
             recordLogData(INFO, "Launch Command Received. Launching Rocket.");
             computer.launch();
         }
-
         if (time > currentCmdData.MinutesUntilPowerOn && !rpi.isOn())
         {
             recordLogData(INFO, "Power On RPI Time Reached. Turning on Raspberry Pi.");
@@ -56,6 +55,11 @@ namespace radioHandler
         {
             recordLogData(INFO, "Video Start Time Reached. Starting Video Recording.");
             rpi.setRecording(true);
+        }
+        else if(currentCmdData.MinutesUntilVideoStart == -2){
+            rpi.setRecording(false);
+            currentCmdData.MinutesUntilVideoStart = 0;
+            recordLogData(INFO, "Video Restart Requested. Restarting Video Recording in 100ms.");
         }
         if (time > currentCmdData.MinutesUntilDataRecording && !computer.getRecordOwnFlightData())
         {

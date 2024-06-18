@@ -14,6 +14,7 @@ private:
     imu::Vector<3> magnetometer;
     imu::Vector<3> initialMagField;
     imu::Vector<3> prevReadings[20];
+    imu::Vector<3> biasCorrection;
 
 public:
     BNO055(uint8_t SCK, uint8_t SDA);

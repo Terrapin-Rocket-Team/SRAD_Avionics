@@ -48,10 +48,11 @@ void BNO055::update()
         }
         prevReadings[19] = read;
         accelerationVec = read - (sum / 10.0);
+        biasCorrection = sum / 10.0;
     }
     else
     {
-        accelerationVec = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+        accelerationVec = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL) - biasCorrection;
     }
     orientation = bno.getQuat();
     orientationEuler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);

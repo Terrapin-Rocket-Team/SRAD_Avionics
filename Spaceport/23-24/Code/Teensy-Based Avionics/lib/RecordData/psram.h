@@ -12,6 +12,7 @@ public:
     bool init();
     void print(const char *data, bool isFlightData = true);
     void println(const char *data, bool isFlightData = true);
+    void write(const uint8_t data);
     bool isReady();
     bool dumpFlightData();
     bool dumpLogData();

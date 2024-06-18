@@ -407,7 +407,7 @@ void State::determineStage()
     if (stageNumber == 0 &&
         (sensorOK(imu) || sensorOK(baro)) &&
         (sensorOK(imu) ? accelerationMagnitude > 25 : true) &&
-        (sensorOK(baro) ? baro->getRelAltFt() > 60 : true))
+        (sensorOK(baro) ? baro->getRelAltFt() > 30 : true))
     // if we are in preflight AND
     // we have either the IMU OR the barometer AND
     // imu is ok AND the accel Magnitude is greater than 25 ft/s^2 OR imu is not ok AND
@@ -418,7 +418,7 @@ void State::determineStage()
         recordLogData(INFO, "Launch detected.");
         launch();
     } // TODO: Add checks for each sensor being ok and decide what to do if they aren't.
-    else if (stageNumber == 1 && accelerationMagnitude < 10)
+    else if (stageNumber == 1 && accelerationMagnitude < 10 && timeSinceLaunch > 1)
     {
         bb.aonoff(BUZZER, 200, 2);
         timePreviousStage = timeAbsolute;

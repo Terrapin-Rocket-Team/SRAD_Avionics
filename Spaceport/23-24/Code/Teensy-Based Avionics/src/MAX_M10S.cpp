@@ -95,7 +95,7 @@ void MAX_M10S::update()
     {
         velocity.x() = (((pos.x() - origin.x()) * 111319.0) - displacement.x()) / (time - timeLast);
         velocity.y() = (((pos.y() - origin.y()) * 111319.0 * cos(pos.x() * PI / 180.0)) - displacement.y()) / (time - timeLast);
-        velocity.z() = ((altitude)-displacement.z()) / (time - timeLast);
+        velocity.z() = ((altitude - origin.z()) - displacement.z()) / (time - timeLast);
 
         displacement.x() = (pos.x() - origin.x()) * 111319.0;
         displacement.y() = (pos.y() - origin.y()) * 111319.0 * cos(pos.x() * PI / 180.0);
